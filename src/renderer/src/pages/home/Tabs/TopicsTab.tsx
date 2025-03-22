@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 import DragableList from '@renderer/components/DragableList'
 import CopyIcon from '@renderer/components/Icons/CopyIcon'
+import ObsidianExportPopup from '@renderer/components/Popups/ObsidianExportPopup'
 import PromptPopup from '@renderer/components/Popups/PromptPopup'
 import Scrollbar from '@renderer/components/Scrollbar'
 import { isMac } from '@renderer/config/constant'
@@ -25,6 +26,7 @@ import { Assistant, Topic } from '@renderer/types'
 import { removeSpecialCharactersForFileName } from '@renderer/utils'
 import { copyTopicAsMarkdown } from '@renderer/utils/copy'
 import {
+  exportMarkdownToJoplin,
   exportMarkdownToYuque,
   exportTopicAsMarkdown,
   exportTopicToNotion,
@@ -137,7 +139,7 @@ const Topics: FC<Props> = ({ assistant: _assistant, activeTopic, setActiveTopic 
             if (messages.length >= 2) {
               const summaryText = await fetchMessagesSummary({ messages, assistant })
               if (summaryText) {
-                updateTopic({ ...topic, name: summaryText })
+                updateTopic({ ...topic, name: summaryText, isNameManuallyEdited: false })
               }
             }
           }
@@ -153,7 +155,7 @@ const Topics: FC<Props> = ({ assistant: _assistant, activeTopic, setActiveTopic 
               defaultValue: topic?.name || ''
             })
             if (name && topic?.name !== name) {
-              updateTopic({ ...topic, name })
+              updateTopic({ ...topic, name, isNameManuallyEdited: true })
             }
           }
         },
@@ -253,6 +255,22 @@ const Topics: FC<Props> = ({ assistant: _assistant, activeTopic, setActiveTopic 
               onClick: async () => {
                 const markdown = await topicToMarkdown(topic)
                 exportMarkdownToYuque(topic.name, markdown)
+              }
+            },
+            {
+              label: t('chat.topics.export.obsidian'),
+              key: 'obsidian',
+              onClick: async () => {
+                const markdown = await topicToMarkdown(topic)
+                await ObsidianExportPopup.show({ title: topic.name, markdown, processingMethod: '3' })
+              }
+            },
+            {
+              label: t('chat.topics.export.joplin'),
+              key: 'joplin',
+              onClick: async () => {
+                const markdown = await topicToMarkdown(topic)
+                exportMarkdownToJoplin(topic.name, markdown)
               }
             }
           ]

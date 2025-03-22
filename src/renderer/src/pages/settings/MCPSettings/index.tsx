@@ -1,13 +1,23 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  LinkOutlined,
+  PlusOutlined,
+  QuestionCircleOutlined,
+  SearchOutlined
+} from '@ant-design/icons'
+import { HStack } from '@renderer/components/Layout'
 import { useTheme } from '@renderer/context/ThemeProvider'
 import { useAppSelector } from '@renderer/store'
 import { MCPServer } from '@renderer/types'
-import { Button, Card, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
-import { FC } from 'react'
+import { Button, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { FC, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SettingContainer, SettingDivider, SettingGroup, SettingTitle } from '..'
 import AddMcpServerPopup from './AddMcpServerPopup'
+import EditMcpJsonPopup from './EditMcpJsonPopup'
+import InstallNpxUv from './InstallNpxUv'
 import NpxSearch from './NpxSearch'
 
 const MCPSettings: FC = () => {
@@ -15,6 +25,7 @@ const MCPSettings: FC = () => {
   const { theme } = useTheme()
   const { Paragraph, Text } = Typography
   const mcpServers = useAppSelector((state) => state.mcp.servers)
+  const [loadingServer, setLoadingServer] = useState<string | null>(null)
 
   const handleDelete = (serverName: string) => {
     window.modal.confirm({
@@ -36,11 +47,18 @@ const MCPSettings: FC = () => {
   }
 
   const handleToggleActive = async (name: string, isActive: boolean) => {
+    setLoadingServer(name)
     try {
       await window.api.mcp.setServerActive(name, isActive)
     } catch (error: any) {
       window.message.error(`${t('settings.mcp.toggleError')}: ${error.message}`)
+    } finally {
+      setLoadingServer(null)
     }
+  }
+
+  const handleOpenMCPServers = () => {
+    window.open('https://glama.ai/mcp/servers', '_blank')
   }
 
   const columns = [
@@ -73,6 +91,7 @@ const MCPSettings: FC = () => {
 
         return (
           <Paragraph
+            className="selectable"
             ellipsis={{
               rows: 1,
               expandable: 'collapsible',
@@ -92,7 +111,11 @@ const MCPSettings: FC = () => {
       key: 'isActive',
       width: '100px',
       render: (isActive: boolean, record: MCPServer) => (
-        <Switch checked={isActive} onChange={(checked) => handleToggleActive(record.name, checked)} />
+        <Switch
+          checked={isActive}
+          loading={loadingServer === record.name}
+          onChange={(checked) => handleToggleActive(record.name, checked)}
+        />
       )
     },
     {
@@ -125,6 +148,7 @@ const MCPSettings: FC = () => {
 
   return (
     <SettingContainer theme={theme}>
+      <InstallNpxUv />
       <SettingGroup theme={theme}>
         <SettingTitle>
           {t('settings.mcp.title')}
@@ -133,36 +157,28 @@ const MCPSettings: FC = () => {
           </Tooltip>
         </SettingTitle>
         <SettingDivider />
-        <Paragraph type="secondary" style={{ margin: '0 0 20px 0' }}>
-          {t('settings.mcp.config_description')}
-        </Paragraph>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <HStack gap={15} alignItems="center">
           <Button type="primary" icon={<PlusOutlined />} onClick={() => AddMcpServerPopup.show()}>
             {t('settings.mcp.addServer')}
           </Button>
-          <Text type="secondary">
-            {mcpServers.length}{' '}
-            {mcpServers.length === 1 ? t('settings.mcp.serverSingular') : t('settings.mcp.serverPlural')}
-          </Text>
-        </div>
-
-        <Card
-          bordered={false}
-          style={{ background: theme === 'dark' ? '#1f1f1f' : '#fff' }}
-          styles={{ body: { padding: 0 } }}>
-          <Table
-            dataSource={mcpServers}
-            columns={columns}
-            rowKey="name"
-            pagination={false}
-            locale={{ emptyText: t('settings.mcp.noServers') }}
-            rowClassName={(record) => (!record.isActive ? 'inactive-row' : '')}
-            onRow={(record) => ({
-              style: !record.isActive ? inactiveRowStyle : {}
-            })}
-          />
-        </Card>
+          <Button icon={<EditOutlined />} onClick={() => EditMcpJsonPopup.show()}>
+            {t('settings.mcp.editJson')}
+          </Button>
+          <Button icon={<SearchOutlined />} onClick={handleOpenMCPServers}>
+            {t('settings.mcp.findMore')} <LinkOutlined />
+          </Button>
+        </HStack>
+        <Table
+          dataSource={mcpServers}
+          columns={columns}
+          rowKey="name"
+          pagination={false}
+          size="small"
+          locale={{ emptyText: t('settings.mcp.noServers') }}
+          rowClassName={(record) => (!record.isActive ? 'inactive-row' : '')}
+          onRow={(record) => ({ style: !record.isActive ? inactiveRowStyle : {} })}
+          style={{ marginTop: 15 }}
+        />
       </SettingGroup>
       <NpxSearch />
     </SettingContainer>

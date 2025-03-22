@@ -16,6 +16,7 @@ export type Assistant = {
   settings?: Partial<AssistantSettings>
   messages?: AssistantMessage[]
   enableWebSearch?: boolean
+  enableGenerateImage?: boolean
 }
 
 export type AssistantMessage = {
@@ -77,7 +78,13 @@ export type Message = {
     webSearch?: WebSearchResponse
     // MCP Tools
     mcpTools?: MCPToolResponse[]
+    // Generate Image
+    generateImage?: GenerateImageResponse
   }
+  // 多模型消息样式
+  multiModelMessageStyle?: 'horizontal' | 'vertical' | 'fold' | 'grid'
+  // fold时是否选中
+  foldSelected?: boolean
 }
 
 export type Metrics = {
@@ -96,6 +103,7 @@ export type Topic = {
   messages: Message[]
   pinned?: boolean
   prompt?: string
+  isNameManuallyEdited?: boolean
 }
 
 export type User = {
@@ -115,6 +123,9 @@ export type Provider = {
   models: Model[]
   enabled?: boolean
   isSystem?: boolean
+  isAuthed?: boolean
+  rateLimit?: number
+  isNotSupportArrayContent?: boolean
 }
 
 export type ProviderType = 'openai' | 'anthropic' | 'gemini' | 'qwenlm' | 'azure-openai'
@@ -188,9 +199,18 @@ export enum ThemeMode {
   auto = 'auto'
 }
 
-export type LanguageVarious = 'zh-CN' | 'zh-TW' | 'en-US' | 'ru-RU' | 'ja-JP'
+export type LanguageVarious = 'zh-CN' | 'zh-TW' | 'el-GR' | 'en-US' | 'es-ES' | 'fr-FR' | 'ja-JP' | 'pt-PT' | 'ru-RU'
 
-export type TranslateLanguageVarious = 'chinese' | 'chinese-traditional' | 'english' | 'japanese' | 'russian'
+export type TranslateLanguageVarious =
+  | 'chinese'
+  | 'chinese-traditional'
+  | 'greek'
+  | 'english'
+  | 'spanish'
+  | 'french'
+  | 'japanese'
+  | 'portuguese'
+  | 'russian'
 
 export type CodeStyleVarious = BuiltinTheme | 'auto'
 
@@ -199,6 +219,7 @@ export type WebDavConfig = {
   webdavUser: string
   webdavPass: string
   webdavPath: string
+  fileName?: string
 }
 
 export type AppInfo = {
@@ -253,6 +274,8 @@ export interface KnowledgeBase {
   chunkSize?: number
   chunkOverlap?: number
   threshold?: number
+  rerankModel?: Model
+  topN?: number
 }
 
 export type KnowledgeBaseParams = {
@@ -264,6 +287,11 @@ export type KnowledgeBaseParams = {
   baseURL: string
   chunkSize?: number
   chunkOverlap?: number
+  rerankApiKey?: string
+  rerankBaseURL?: string
+  rerankModel?: string
+  rerankModelProvider?: string
+  topN?: number
 }
 
 export type GenerateImageParams = {
@@ -277,6 +305,10 @@ export type GenerateImageParams = {
   guidanceScale: number
   signal?: AbortSignal
   promptEnhancement?: boolean
+}
+
+export type GenerateImageResponse = {
+  images: string[]
 }
 
 export interface TranslateHistory {

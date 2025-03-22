@@ -172,11 +172,15 @@ export const TEXT_TO_IMAGE_REGEX = /flux|diffusion|stabilityai|sd-|dall|cogview|
 
 // Reasoning models
 export const REASONING_REGEX =
-  /^(o\d+(?:-[\w-]+)?|.*\b(?:reasoner|thinking)\b.*|.*-[rR]\d+.*|.*\bqwq(?:-[\w-]+)?\b.*)$/i
+  /^(o\d+(?:-[\w-]+)?|.*\b(?:reasoner|thinking)\b.*|.*-[rR]\d+.*|.*\bqwq(?:-[\w-]+)?\b.*|.*\bhunyuan-t1(?:-[\w-]+)?\b.*)$/i
 
 // Embedding models
 export const EMBEDDING_REGEX = /(?:^text-|embed|bge-|e5-|LLM2Vec|retrieval|uae-|gte-|jina-clip|jina-embeddings)/i
-export const NOT_SUPPORTED_REGEX = /(?:^tts|rerank|whisper|speech)/i
+
+// Rerank models
+export const RERANKING_REGEX = /(?:rerank|re-rank|re-ranker|re-ranking|retrieval|retriever)/i
+
+export const NOT_SUPPORTED_REGEX = /(?:^tts|whisper|speech)/i
 
 // Tool calling models
 export const FUNCTION_CALLING_MODELS = [
@@ -186,6 +190,7 @@ export const FUNCTION_CALLING_MODELS = [
   'gpt-4.5',
   'claude',
   'qwen',
+  'hunyuan',
   'glm-4(?:-[\\w-]+)?',
   'learnlm(?:-[\\w-]+)?',
   'gemini(?:-[\\w-]+)?' // 提前排除了gemini的嵌入模型
@@ -598,6 +603,7 @@ export const SYSTEM_MODELS: Record<string, Model[]> = {
       group: '01-ai'
     }
   ],
+  alayanew: [],
   openai: [
     { id: 'gpt-4.5-preview', provider: 'openai', name: ' gpt-4.5-preview', group: 'gpt-4.5' },
     { id: 'gpt-4o', provider: 'openai', name: ' GPT-4o', group: 'GPT 4o' },
@@ -1029,6 +1035,14 @@ export const SYSTEM_MODELS: Record<string, Model[]> = {
       group: 'OpenAI'
     }
   ],
+  copilot: [
+    {
+      id: 'gpt-4o-mini',
+      provider: 'copilot',
+      name: 'OpenAI GPT-4o-mini',
+      group: 'OpenAI'
+    }
+  ],
   yi: [
     { id: 'yi-lightning', name: 'Yi Lightning', provider: 'yi', group: 'yi-lightning', owned_by: '01.ai' },
     { id: 'yi-vision-v2', name: 'Yi Vision v2', provider: 'yi', group: 'yi-vision', owned_by: '01.ai' }
@@ -1086,6 +1100,12 @@ export const SYSTEM_MODELS: Record<string, Model[]> = {
       id: 'glm-4v',
       provider: 'zhipu',
       name: 'GLM 4V',
+      group: 'GLM-4v'
+    },
+    {
+      id: 'glm-4v-flash',
+      provider: 'zhipu',
+      name: 'GLM-4V-Flash',
       group: 'GLM-4v'
     },
     {
@@ -1858,6 +1878,8 @@ export const TEXT_TO_IMAGES_MODELS_SUPPORT_IMAGE_ENHANCEMENT = [
   'stabilityai/stable-diffusion-xl-base-1.0'
 ]
 
+export const GENERATE_IMAGE_MODELS = ['gemini-2.0-flash-exp-image-generation', 'gemini-2.0-flash-exp']
+
 export function isTextToImageModel(model: Model): boolean {
   return TEXT_TO_IMAGE_REGEX.test(model.id)
 }
@@ -1875,11 +1897,22 @@ export function isEmbeddingModel(model: Model): boolean {
     return EMBEDDING_REGEX.test(model.name)
   }
 
+  if (isRerankModel(model)) {
+    return false
+  }
+
   return EMBEDDING_REGEX.test(model.id) || model.type?.includes('embedding') || false
+}
+
+export function isRerankModel(model: Model): boolean {
+  return model ? RERANKING_REGEX.test(model.id) || false : false
 }
 
 export function isVisionModel(model: Model): boolean {
   if (!model) {
+    return false
+  }
+  if (model.provider === 'copilot') {
     return false
   }
 
@@ -1975,6 +2008,28 @@ export function isWebSearchModel(model: Model): boolean {
     return true
   }
 
+  return false
+}
+
+export function isGenerateImageModel(model: Model): boolean {
+  if (!model) {
+    return false
+  }
+
+  const provider = getProviderByModel(model)
+
+  if (!provider) {
+    return false
+  }
+
+  const isEmbedding = isEmbeddingModel(model)
+
+  if (isEmbedding) {
+    return false
+  }
+  if (GENERATE_IMAGE_MODELS.includes(model.id)) {
+    return true
+  }
   return false
 }
 

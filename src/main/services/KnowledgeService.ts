@@ -23,7 +23,7 @@ import { SitemapLoader } from '@llm-tools/embedjs-loader-sitemap'
 import { WebLoader } from '@llm-tools/embedjs-loader-web'
 import { AzureOpenAiEmbeddings, OpenAiEmbeddings } from '@llm-tools/embedjs-openai'
 import { addFileLoader } from '@main/loader'
-import { proxyManager } from '@main/services/ProxyManager'
+import Reranker from '@main/reranker/Reranker'
 import { windowService } from '@main/services/WindowService'
 import { getInstanceName } from '@main/utils'
 import { getAllFiles } from '@main/utils/file'
@@ -124,16 +124,15 @@ class KnowledgeService {
               azureOpenAIApiVersion: apiVersion,
               azureOpenAIApiDeploymentName: model,
               azureOpenAIApiInstanceName: getInstanceName(baseURL),
-              configuration: { httpAgent: proxyManager.getProxyAgent() },
               dimensions,
               batchSize
             })
           : new OpenAiEmbeddings({
               model,
               apiKey,
-              configuration: { baseURL, httpAgent: proxyManager.getProxyAgent() },
               dimensions,
-              batchSize
+              batchSize,
+              configuration: { baseURL }
             })
       )
       .setVectorDatabase(new LibSqlDb({ path: path.join(this.storageDir, id) }))
@@ -334,7 +333,6 @@ class KnowledgeService {
   ): LoaderTask {
     const { base, item, forceReload } = options
     const content = item.content as string
-    console.debug('chunkSize', base.chunkSize)
 
     const encoder = new TextEncoder()
     const contentBytes = encoder.encode(content)
@@ -426,7 +424,6 @@ class KnowledgeService {
   }
 
   public add = (_: Electron.IpcMainInvokeEvent, options: KnowledgeBaseAddItemOptions): Promise<LoaderReturn> => {
-    proxyManager.setGlobalProxy()
     return new Promise((resolve) => {
       const { base, item, forceReload = false } = options
       const optionsNonNullableAttribute = { base, item, forceReload }
@@ -470,7 +467,7 @@ class KnowledgeService {
     { uniqueId, uniqueIds, base }: { uniqueId: string; uniqueIds: string[]; base: KnowledgeBaseParams }
   ): Promise<void> => {
     const ragApplication = await this.getRagApplication(base)
-    console.debug(`[ KnowledgeService Remove Item UniqueId: ${uniqueId}]`)
+    console.log(`[ KnowledgeService Remove Item UniqueId: ${uniqueId}]`)
     for (const id of uniqueIds) {
       await ragApplication.deleteLoader(id)
     }
@@ -482,6 +479,13 @@ class KnowledgeService {
   ): Promise<ExtractChunkData[]> => {
     const ragApplication = await this.getRagApplication(base)
     return await ragApplication.search(search)
+  }
+
+  public rerank = async (
+    _: Electron.IpcMainInvokeEvent,
+    { search, base, results }: { search: string; base: KnowledgeBaseParams; results: ExtractChunkData[] }
+  ): Promise<ExtractChunkData[]> => {
+    return await new Reranker(base).rerank(search, results)
   }
 }
 
